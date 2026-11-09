@@ -1,0 +1,44 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NSE Rank Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0b0f14;--card:#111821;--line:#1e2a38;--tx:#d7e2ee;--mut:#7d8ea3;--g:#22c55e;--r:#ef4444;--a:#38bdf8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;padding:env(safe-area-inset-top) 10px 20px}
+.w{max-width:1100px;margin:auto}header{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;padding:12px 0}
+h1{font-size:16px;margin:0;color:var(--a)}h1:before{content:"> ";color:var(--g)}
+.mut{color:var(--mut)}select,button{background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:inherit}
+.k{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.c{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:10px}
+.k b{display:block;font-size:20px}.g{color:var(--g)}.l{color:var(--r)}
+.tabs{display:flex;gap:6px;margin-bottom:8px}.tabs button.on{border-color:var(--a);color:var(--a)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.chips button{font-size:12px;padding:3px 8px;opacity:.45}.chips button.on{opacity:1}
+.ch{position:relative;height:52vh;min-height:280px}.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;white-space:nowrap}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:400}
+.b{padding:1px 6px;border-radius:4px;font-size:11px}.bg{background:#22c55e22;color:var(--g)}.bl{background:#ef444422;color:var(--r)}
+</style></head><body><div class="w">
+<header><h1>NSE F&amp;O RANK TRACKER</h1><div><select id="d"></select> <span class="mut" id="u"></span></div></header>
+<div class="k"><div class="c">Tracked<b id="k0">-</b></div><div class="c">In Gainers<b class="g" id="k1">-</b></div><div class="c">In Losers<b class="l" id="k2">-</b></div></div>
+<div class="c"><div class="tw"><table><thead><tr><th>Symbol</th><th>Side</th><th>Rank</th><th>Δ</th><th>LTP</th><th>%Chg</th></tr></thead><tbody id="tb"></tbody></table></div></div>
+<div class="c"><div class="tabs"><button id="tg" class="on">Gainers</button><button id="tl">Losers</button></div>
+<div class="chips" id="chips"></div><div class="ch"><canvas id="cv"></canvas></div>
+<div class="mut" style="margin-top:6px">Rank 1 = top. Chart me upar = behtar position. Gap = list me nahi tha.</div></div></div>
+<script>
+const $=s=>document.getElementById(s),COL=["#38bdf8","#f59e0b","#a78bfa","#22c55e","#f472b6","#ef4444","#2dd4bf","#facc15","#fb923c","#818cf8"];
+let doc,side="g",sel=new Set(),chart;
+async function j(u){const r=await fetch(u+"?"+Date.now());if(!r.ok)throw 0;return r.json()}
+async function init(){try{const days=await j("data/index.json");$("d").innerHTML=days.slice().reverse().map(x=>`<option>${x}</option>`).join("");$("d").onchange=load;await load()}catch(e){$("u").textContent="No data yet"}}
+async function load(){doc=await j("data/"+$("d").value+".json");if(!sel.size)doc.symbols.forEach(s=>sel.add(s));draw()}
+function draw(){const S=doc.snaps,last=S[S.length-1],prev=S[S.length-2];$("u").textContent="Updated "+doc.updated+" IST";
+let ng=0,nl=0;$("tb").innerHTML=doc.symbols.map(s=>{const x=last.g[s]?["g",last.g[s]]:last.l[s]?["l",last.l[s]]:null;
+if(x)x[0]=="g"?ng++:nl++;let d="–";if(x&&prev&&prev[x[0]][s]){const v=prev[x[0]][s].r-x[1].r;d=v>0?`<span class=g>▲${v}</span>`:v<0?`<span class=l>▼${-v}</span>`:"•"}
+return x?`<tr><td>${s}</td><td><span class="b b${x[0]}">${x[0]=="g"?"GAINER":"LOSER"}</span></td><td>#${x[1].r}${x[1].r<=doc.top_n?"":" "}</td><td>${d}</td><td>${x[1].ltp??"-"}</td><td class="${x[1].p>=0?"g":"l"}">${x[1].p??"-"}%</td></tr>`:`<tr><td>${s}</td><td colspan=5 class=mut>not in list</td></tr>`}).join("");
+$("k0").textContent=doc.symbols.length;$("k1").textContent=ng;$("k2").textContent=nl;
+$("chips").innerHTML=doc.symbols.map(s=>`<button class="${sel.has(s)?"on":""}" onclick="tog('${s}')">${s}</button>`).join("");
+const ds=doc.symbols.filter(s=>sel.has(s)).map(s=>({label:s,data:S.map(n=>n[side][s]?n[side][s].r:null),borderColor:COL[doc.symbols.indexOf(s)%10],backgroundColor:COL[doc.symbols.indexOf(s)%10],tension:.25,pointRadius:3,borderWidth:2,spanGaps:false}));
+const mx=Math.max(doc.top_n,...ds.flatMap(d=>d.data.filter(v=>v)));
+if(chart)chart.destroy();chart=new Chart($("cv"),{type:"line",data:{labels:S.map(n=>n.t),datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"nearest",intersect:false},
+scales:{y:{reverse:true,min:1,max:mx,ticks:{stepSize:1,color:"#7d8ea3"},grid:{color:"#1e2a38"},title:{display:true,text:"Rank",color:"#7d8ea3"}},x:{ticks:{color:"#7d8ea3",maxTicksLimit:8},grid:{color:"#1e2a38"}}},plugins:{legend:{labels:{color:"#d7e2ee",boxWidth:10}}}}})}
+function tog(s){sel.has(s)?sel.delete(s):sel.add(s);draw()}
+$("tg").onclick=()=>{side="g";$("tg").className="on";$("tl").className="";draw()};$("tl").onclick=()=>{side="l";$("tl").className="on";$("tg").className="";draw()};
+init();setInterval(()=>doc&&load(),60000);
+</script></body></html>

@@ -1,6 +1,10 @@
 name: track
 on:
-  workflow_dispatch:   # cronjob.org isko har 5 min trigger karega
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Run even if market closed"
+        default: "0"
 concurrency: { group: track, cancel-in-progress: false }
 permissions: { contents: write }
 jobs:
@@ -13,6 +17,8 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install requests
       - run: python fetch_nse.py
+        env:
+          FORCE: ${{ github.event.inputs.force || '0' }}
       - name: commit
         run: |
           git config user.name "tracker-bot"; git config user.email "bot@users.noreply.github.com"

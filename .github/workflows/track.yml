@@ -1,0 +1,41 @@
+name: track
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "1 = run even if market closed"
+        required: false
+        default: "0"
+
+concurrency:
+  group: track
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install requests
+
+      - name: Fetch NSE data
+        run: python fetch_nse.py
+        env:
+          FORCE: ${{ github.event.inputs.force || '0' }}
+
+      - name: Commit data
+        run: |
+          git config user.name "tracker-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add docs/data
+          git diff --cached --quiet || (git commit -m "data $(date -u +%H:%M)" && git pull --rebase && git push)

@@ -1,5 +1,7 @@
 # Apne symbols yahan likho (ek line me ek)
 PERSISTENT
+SBIN
+MANKIND
 PAGEIND
 SONACOMS
 CIPLA

@@ -1,1 +1,5 @@
 section,symbol,cmp,week52_high,week52_low,ath,pct_below_52w_high,pct_above_52w_low,pct_below_ath
+NEAR_52W_LOW,PIIND,1712.9,3582.0,1699.4,4804.05,,0.79,
+NEAR_52W_HIGH,MARICO,902.0,904.0,707.25,904.0,0.22,,
+NEAR_ATH,MARICO,902.0,904.0,707.25,904.0,,,0.22
+NEAR_52W_HIGH,DLF,755.0,772.8,489.4,1225.0,2.3,,

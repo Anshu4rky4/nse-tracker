@@ -1,4 +1,6 @@
 # Apne symbols yahan likho (ek line me ek)
+BAJFINANCE
+KALYANKJIL
 PERSISTENT
 SBIN
 MANKIND

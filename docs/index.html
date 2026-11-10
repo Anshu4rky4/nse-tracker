@@ -81,15 +81,15 @@ th,td{padding:9px 10px;font-size:13px}.brand small{display:none}.sg small{font-s
 
 <section class="seg">
 <button class="sg on" id="s-all" data-v="all"><span class="lbl">Tracked</span><b id="n-all">–</b><small id="x-all"></small></button>
-<button class="sg g" id="s-g" data-v="g"><span class="lbl">Gainers</span><b id="n-g">–</b><small id="x-g"></small></button>
-<button class="sg l" id="s-l" data-v="l"><span class="lbl">Losers</span><b id="n-l">–</b><small id="x-l"></small></button>
+<button class="sg g" id="s-g" data-v="g"><span class="lbl" id="l-g">Gainers (TOP 20)</span><b id="n-g">–</b><small id="x-g"></small></button>
+<button class="sg l" id="s-l" data-v="l"><span class="lbl" id="l-l">Losers (TOP 20)</span><b id="n-l">–</b><small id="x-l"></small></button>
 </section>
 
 <section class="card panel"><div class="ph"><h2 id="tt">Tracked Symbols<span id="tc"></span></h2>
 <div class="ctl"><input type="search" id="q" placeholder="Search symbol"><label class="sw"><input type="checkbox" id="co">Catalyst only</label></div></div>
 <div class="tw"><table><thead><tr><th>Symbol</th><th>LTP</th><th>% Change</th><th style="text-align:center">Bias</th><th style="text-align:center">Rank</th><th>Catalyst</th></tr></thead><tbody id="tb"></tbody></table></div></section>
 
-<section class="card panel"><div class="ph"><h2>Rank vs Time<span id="cs"></span></h2><div class="tabs"><button id="tg" class="on">Gainers</button><button id="tl">Losers</button></div></div>
+<section class="card panel"><div class="ph"><h2>Rank vs Time<span id="cs"></span></h2><div class="tabs"><button id="tg" class="on">Gainers (TOP 20)</button><button id="tl">Losers (TOP 20)</button></div></div>
 <div class="cb"><div class="ctl"><button id="ca">All</button><button id="cn">None</button><span class="mut" style="font-size:12px">Rank 1 = top · line upar = behtar rank · gap = list me nahi</span></div>
 <div class="chips" id="chips"></div><div class="ch"><canvas id="cv"></canvas><div class="empty" id="ce" style="display:none;position:absolute;inset:0"></div></div></div>
 <details><summary>Snapshot Log · kis time par kaun gainer / loser me tha</summary><div class="tl"><table><tbody id="log"></tbody></table></div></details></section>
@@ -119,10 +119,10 @@ function istNow(){const p=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Kolkat
 function build(){const S=doc.snaps,last=S[S.length-1]||{},prev=S[S.length-2]||{},m=last.m||{},cat=doc.cat||{},res=doc.res||{};
 return doc.symbols.map(s=>{const x=m[s]||{},gr=x.gr??null,lr=x.lr??null,sd=gr!=null?"g":lr!=null?"l":null,rk=sd=="g"?gr:sd=="l"?lr:null,pr=sd&&prev[sd]&&prev[sd][s]?prev[sd][s].r:null;
 return{s,ltp:x.ltp??null,p:x.p??null,sd,rk,d:pr!=null?pr-rk:null,cat:cat[s]||[],rd:res[s]}})}
-const P=r=>r.p??0;
+const P=r=>r.p??0,TN=()=>doc.top_n||20;
 const byG=a=>a.filter(r=>r.sd=="g").sort((a,b)=>P(b)-P(a)),byL=a=>a.filter(r=>r.sd=="l").sort((a,b)=>P(a)-P(b)),byN=a=>a.filter(r=>!r.sd).sort((a,b)=>P(b)-P(a));
 
-function render(){const S=doc.snaps,last=S[S.length-1]||{};R=build();const G=byG(R),L=byL(R),N=byN(R);
+function render(){const S=doc.snaps,last=S[S.length-1]||{};$("l-g").textContent=`Gainers (TOP ${TN()})`;$("l-l").textContent=`Losers (TOP ${TN()})`;$("tg").textContent=`Gainers (TOP ${TN()})`;$("tl").textContent=`Losers (TOP ${TN()})`;R=build();const G=byG(R),L=byL(R),N=byN(R);
 // breadth
 const a=last.adv,dn=last.dec,u=last.unch,t=(a||0)+(dn||0)+(u||0);
 $("adv").textContent=a??"–";$("dec").textContent=dn??"–";$("unc").textContent=u??"–";
@@ -142,9 +142,9 @@ table();record();safeChart()}
 function table(){const G=byG(R),L=byL(R),N=byN(R),q=$("q").value.trim().toUpperCase(),co=$("co").checked;
 let rows=view=="g"?G:view=="l"?L:[...G,...L,...N];
 rows=rows.filter(r=>(!q||r.s.includes(q))&&(!co||r.cat.length));
-$("tt").firstChild.textContent=view=="g"?"Gainers · sorted by % change":view=="l"?"Losers · biggest fall first":"Tracked Symbols";$("tc").textContent=rows.length+" symbols";
+$("tt").firstChild.textContent=view=="g"?"Gainers (TOP "+TN()+") · sorted by % change":view=="l"?"Losers (TOP "+TN()+") · biggest fall first":"Tracked Symbols";$("tc").textContent=rows.length+" symbols";
 ["all","g","l"].forEach(v=>$("s-"+v).classList.toggle("on",v==view));
-$("tb").innerHTML=rows.length?rows.map(r=>{const c=r.sd=="g"?"g":r.sd=="l"?"l":"",bc=r.sd=="g"?["BULLISH","bg"]:r.sd=="l"?["BEARISH","bl"]:["NEUTRAL","bn"];
+$("tb").innerHTML=rows.length?rows.map(r=>{const c=r.sd=="g"?"g":r.sd=="l"?"l":"",bc=r.sd=="g"?["BULLISH","bg"]:r.sd=="l"?["BEARISH","bl"]:r.p>0?["POSITIVE","bg"]:r.p<0?["NEGATIVE","bl"]:["NEUTRAL","bn"];
 const dl=r.d?`<span class="dl ${r.d>0?"g":"l"}">${r.d>0?"▲"+r.d:"▼"+-r.d}</span>`:"";
 const ct=r.cat.map(t=>`<span class="ct ${CC[t]}"${t=="RESULT"&&r.rd?` title="Result date: ${r.rd}"`:""}>${t}</span>`).join("")||'<span class="mut">–</span>';
 return`<tr class="${c?"b"+c:""}"><td>${r.s}</td><td>${fmt(r.ltp)}</td><td class="chg ${r.p==null?"":r.p>=0?"g":"l"}">${r.p==null?"–":(r.p>=0?"▲ ":"▼ ")+sg(r.p).replace("-","")}</td><td style="text-align:center"><span class="bd ${bc[1]}">${bc[0]}</span></td><td style="text-align:center" class="rk ${c}">${r.sd?(r.sd=="g"?"G":"L")+" #"+r.rk+dl:'<span class="mut">–</span>'}</td><td>${ct}</td></tr>`}).join(""):`<tr><td colspan="6" class="empty" style="text-align:center;position:static">Koi symbol nahi mila</td></tr>`}

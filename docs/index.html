@@ -1,44 +1,174 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<!DOCTYPE html><html lang="en" data-theme="dark"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>NSE Rank Tracker</title>
+<title>NSE F&O Rank Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-:root{--bg:#0b0f14;--card:#111821;--line:#1e2a38;--tx:#d7e2ee;--mut:#7d8ea3;--g:#22c55e;--r:#ef4444;--a:#38bdf8}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;padding:env(safe-area-inset-top) 10px 20px}
-.w{max-width:1100px;margin:auto}header{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;padding:12px 0}
-h1{font-size:16px;margin:0;color:var(--a)}h1:before{content:"> ";color:var(--g)}
-.mut{color:var(--mut)}select,button{background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:inherit}
-.k{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.c{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:10px}
-.k b{display:block;font-size:20px}.g{color:var(--g)}.l{color:var(--r)}
-.tabs{display:flex;gap:6px;margin-bottom:8px}.tabs button.on{border-color:var(--a);color:var(--a)}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.chips button{font-size:12px;padding:3px 8px;opacity:.45}.chips button.on{opacity:1}
-.ch{position:relative;height:52vh;min-height:280px}.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;white-space:nowrap}
-th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:400}
-.b{padding:1px 6px;border-radius:4px;font-size:11px}.bg{background:#22c55e22;color:var(--g)}.bl{background:#ef444422;color:var(--r)}
-</style></head><body><div class="w">
-<header><h1>NSE F&amp;O RANK TRACKER</h1><div><select id="d"></select> <span class="mut" id="u"></span></div></header>
-<div class="k"><div class="c">Tracked<b id="k0">-</b></div><div class="c">In Gainers<b class="g" id="k1">-</b></div><div class="c">In Losers<b class="l" id="k2">-</b></div></div>
-<div class="c"><div class="tw"><table><thead><tr><th>Symbol</th><th>Side</th><th>Rank</th><th>Δ</th><th>LTP</th><th>%Chg</th></tr></thead><tbody id="tb"></tbody></table></div></div>
-<div class="c"><div class="tabs"><button id="tg" class="on">Gainers</button><button id="tl">Losers</button></div>
-<div class="chips" id="chips"></div><div class="ch"><canvas id="cv"></canvas></div>
-<div class="mut" style="margin-top:6px">Rank 1 = top. Chart me upar = behtar position. Gap = list me nahi tha.</div></div></div>
+:root{--bg:#090d13;--p:#0f151e;--p2:#131b26;--ln:#1b2634;--tx:#e6edf5;--mut:#8192a6;--g:#26c281;--r:#f05252;--a:#4f9cf9;--am:#f5b83d;--sh:0 1px 0 rgba(255,255,255,.03) inset,0 8px 24px rgba(0,0,0,.25)}
+[data-theme=light]{--bg:#f2f4f8;--p:#fff;--p2:#f7f9fc;--ln:#e3e8ef;--tx:#101828;--mut:#667085;--g:#0e9f6e;--r:#dc2626;--a:#2563eb;--am:#b7791f;--sh:0 1px 2px rgba(16,24,40,.06),0 4px 14px rgba(16,24,40,.05)}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 -apple-system,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;font-variant-numeric:tabular-nums;padding:0 0 env(safe-area-inset-bottom)}
+.w{max-width:1200px;margin:0 auto;padding:0 14px}
+.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--ln);padding-top:env(safe-area-inset-top)}
+.top .w{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:56px;flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
+.brand{display:flex;align-items:center;gap:10px}.logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--a),var(--g));display:grid;place-items:center}
+.brand h1{font-size:15px;margin:0;letter-spacing:.2px}.brand small{display:block;color:var(--mut);font-size:11px;letter-spacing:.6px;text-transform:uppercase}
+.ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+select,button,input{background:var(--p);color:var(--tx);border:1px solid var(--ln);border-radius:8px;padding:7px 10px;font:inherit;font-size:13px}
+button{cursor:pointer}button:hover{border-color:var(--a)}input:focus,select:focus{outline:none;border-color:var(--a)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.6px;padding:5px 10px;border-radius:99px;border:1px solid var(--ln);background:var(--p);color:var(--mut)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--mut)}.live .dot{background:var(--g);box-shadow:0 0 0 0 var(--g);animation:pl 1.8s infinite}.live{color:var(--g)}
+@keyframes pl{70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.card{background:var(--p);border:1px solid var(--ln);border-radius:12px;box-shadow:var(--sh)}
+.lbl{font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--mut)}
+/* breadth */
+.breadth{margin-top:16px;padding:14px 16px}
+.brow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.bc{border-left:3px solid var(--ln);padding-left:12px}.bc b{display:block;font-size:30px;line-height:1.15;font-weight:700}.bc small{color:var(--mut);font-size:12px}
+.bc.a{border-color:var(--g)}.bc.a b{color:var(--g)}.bc.d{border-color:var(--r)}.bc.d b{color:var(--r)}.bc.u{border-color:var(--mut)}
+.bar{display:flex;height:6px;border-radius:9px;overflow:hidden;background:var(--ln);margin-top:14px}.bar i{display:block;height:100%;transition:width .5s}
+.bmeta{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--mut)}
+.gap{height:28px}
+/* segments */
+.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.sg{padding:14px 16px;text-align:left;cursor:pointer;border-radius:12px;border:1px solid var(--ln);background:var(--p);box-shadow:var(--sh);color:var(--tx);transition:.15s}
+.sg:hover{transform:translateY(-1px)}.sg b{display:block;font-size:28px;line-height:1.2;margin:4px 0 2px}.sg small{color:var(--mut);font-size:12px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sg{min-width:0}
+.sg.on{border-color:var(--a);box-shadow:0 0 0 1px var(--a),var(--sh)}.sg.g b{color:var(--g)}.sg.l b{color:var(--r)}.sg.g.on{border-color:var(--g);box-shadow:0 0 0 1px var(--g),var(--sh)}.sg.l.on{border-color:var(--r);box-shadow:0 0 0 1px var(--r),var(--sh)}
+/* panels */
+.panel{margin-top:14px;overflow:hidden;min-width:0}.ph{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--ln)}
+.ph h2{margin:0;font-size:14px}.ph h2 span{color:var(--mut);font-weight:400;font-size:12px;margin-left:6px}
+.tw{overflow:auto;max-height:70vh}table{width:100%;border-collapse:collapse;white-space:nowrap}
+th,td{padding:10px 14px;border-bottom:1px solid var(--ln);text-align:right}th:first-child,td:first-child{text-align:left}th:last-child,td:last-child{text-align:left}
+th{position:sticky;top:0;background:var(--p2);color:var(--mut);font-size:11px;font-weight:600;letter-spacing:.7px;text-transform:uppercase;z-index:2}
+tbody tr:hover td{background:var(--p2)}td:first-child{position:sticky;left:0;background:var(--p);font-weight:700;z-index:1}th:first-child{left:0;z-index:3}tbody tr:hover td:first-child{background:var(--p2)}
+tr.bg td:first-child{box-shadow:inset 3px 0 0 var(--g)}tr.bl td:first-child{box-shadow:inset 3px 0 0 var(--r)}
+.g{color:var(--g)}.l{color:var(--r)}.mut{color:var(--mut)}
+.chg{font-weight:600}.bd{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.7px;padding:3px 8px;border-radius:5px}
+.bd.bg{background:color-mix(in srgb,var(--g) 15%,transparent);color:var(--g)}.bd.bl{background:color-mix(in srgb,var(--r) 15%,transparent);color:var(--r)}.bd.bn{background:var(--p2);color:var(--mut);border:1px solid var(--ln)}
+.ct{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.5px;padding:3px 8px;border-radius:5px;margin-right:5px;border:1px solid}
+.c-hi{color:var(--g);border-color:color-mix(in srgb,var(--g) 40%,transparent);background:color-mix(in srgb,var(--g) 10%,transparent)}
+.c-lo{color:var(--r);border-color:color-mix(in srgb,var(--r) 40%,transparent);background:color-mix(in srgb,var(--r) 10%,transparent)}
+.c-ath{color:var(--am);border-color:color-mix(in srgb,var(--am) 45%,transparent);background:color-mix(in srgb,var(--am) 12%,transparent)}
+.c-res{color:var(--a);border-color:color-mix(in srgb,var(--a) 40%,transparent);background:color-mix(in srgb,var(--a) 10%,transparent)}
+.rk{font-weight:700}.dl{font-size:11px;margin-left:5px}
+.empty{padding:28px;text-align:center;color:var(--mut)}
+label.sw{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);cursor:pointer}label.sw input{padding:0;accent-color:var(--a)}
+input[type=search]{width:150px}
+/* chart */
+.cb{padding:12px 16px}.tabs{display:inline-flex;border:1px solid var(--ln);border-radius:8px;overflow:hidden}.tabs button{border:0;border-radius:0;background:var(--p)}.tabs button.on{background:var(--a);color:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.chips button{font-size:11.5px;padding:3px 9px;border-radius:99px;opacity:.4;display:inline-flex;align-items:center;gap:5px}.chips button.on{opacity:1}.chips i{width:8px;height:8px;border-radius:50%}
+.ch{position:relative;height:clamp(320px,55vh,560px)}
+details{border-top:1px solid var(--ln)}summary{padding:12px 16px;cursor:pointer;font-weight:600;font-size:13px}
+.tl{max-height:360px;overflow:auto}.tl table td{white-space:normal;text-align:left;vertical-align:top}.tl td:first-child{width:64px}
+.mini{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;margin:2px 3px 2px 0;font-weight:600}.mini.g{background:color-mix(in srgb,var(--g) 14%,transparent)}.mini.l{background:color-mix(in srgb,var(--r) 14%,transparent)}
+footer{color:var(--mut);font-size:11.5px;text-align:center;padding:22px 0 30px}
+@media(max-width:640px){.w{padding:0 10px}.bc b{font-size:22px}.bc{padding-left:9px}.sg b{font-size:22px}.sg{padding:11px 12px}.seg{gap:8px}.brow{gap:4px}.breadth{padding:12px}
+th,td{padding:9px 10px;font-size:13px}.brand small{display:none}.sg small{font-size:10.5px}.lbl{font-size:10px}input[type=search]{width:120px}.ph{padding:10px 12px}.cb{padding:10px 12px}}
+</style></head><body>
+<div class="top"><div class="w">
+<div class="brand"><div class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20V8"/></svg></div><div><h1>NSE F&amp;O Rank Tracker</h1><small>Institutional Market Monitor</small></div></div>
+<div class="ctl"><span class="pill" id="st"><i class="dot"></i><span id="stt">–</span></span><select id="d"></select><button id="th" title="Theme" aria-label="Theme"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg></button></div>
+</div></div>
+
+<main class="w">
+<section class="card breadth"><div class="brow">
+<div class="bc a"><span class="lbl">Advances</span><b id="adv">–</b><small id="advp"></small></div>
+<div class="bc d"><span class="lbl">Declines</span><b id="dec">–</b><small id="decp"></small></div>
+<div class="bc u"><span class="lbl">Unchanged</span><b id="unc">–</b><small id="uncp"></small></div></div>
+<div class="bar"><i id="ba" style="background:var(--g);width:0"></i><i id="bu" style="background:var(--mut);width:0"></i><i id="bd" style="background:var(--r);width:0"></i></div>
+<div class="bmeta"><span>Market Breadth · SECURITIES IN F&amp;O</span><span id="ad">A/D –</span></div></section>
+
+<div class="gap"></div>
+
+<section class="seg">
+<button class="sg on" id="s-all" data-v="all"><span class="lbl">Tracked</span><b id="n-all">–</b><small id="x-all"></small></button>
+<button class="sg g" id="s-g" data-v="g"><span class="lbl">Gainers</span><b id="n-g">–</b><small id="x-g"></small></button>
+<button class="sg l" id="s-l" data-v="l"><span class="lbl">Losers</span><b id="n-l">–</b><small id="x-l"></small></button>
+</section>
+
+<section class="card panel"><div class="ph"><h2 id="tt">Tracked Symbols<span id="tc"></span></h2>
+<div class="ctl"><input type="search" id="q" placeholder="Search symbol"><label class="sw"><input type="checkbox" id="co">Catalyst only</label></div></div>
+<div class="tw"><table><thead><tr><th>Symbol</th><th>LTP</th><th>% Change</th><th style="text-align:center">Bias</th><th style="text-align:center">Rank</th><th>Catalyst</th></tr></thead><tbody id="tb"></tbody></table></div></section>
+
+<section class="card panel"><div class="ph"><h2>Rank vs Time<span id="cs"></span></h2><div class="tabs"><button id="tg" class="on">Gainers</button><button id="tl">Losers</button></div></div>
+<div class="cb"><div class="ctl"><button id="ca">All</button><button id="cn">None</button><span class="mut" style="font-size:12px">Rank 1 = top · line upar = behtar rank · gap = list me nahi</span></div>
+<div class="chips" id="chips"></div><div class="ch"><canvas id="cv"></canvas><div class="empty" id="ce" style="display:none;position:absolute;inset:0"></div></div></div>
+<details><summary>Snapshot Log · kis time par kaun gainer / loser me tha</summary><div class="tl"><table><tbody id="log"></tbody></table></div></details></section>
+
+<section class="card panel"><div class="ph"><h2>Catalyst Record<span id="rc"></span></h2><div class="ctl"><button id="dl">⬇ Download CSV</button></div></div>
+<div class="tw" style="max-height:50vh"><table><thead><tr><th>Symbol</th><th>Catalyst</th></tr></thead><tbody id="rb"></tbody></table></div></section>
+
+<footer id="ft">NSE data · auto-refresh 60s</footer>
+</main>
+
 <script>
-const $=s=>document.getElementById(s),COL=["#38bdf8","#f59e0b","#a78bfa","#22c55e","#f472b6","#ef4444","#2dd4bf","#facc15","#fb923c","#818cf8"];
-let doc,side="g",sel=new Set(),chart;
+const $=id=>document.getElementById(id),CC={"52W HIGH":"c-hi","52W LOW":"c-lo","ATH":"c-ath","RESULT":"c-res"};
+let doc,view="all",side="g",off=new Set(),chart,R=[];
+const fmt=(v,d=2)=>v==null||isNaN(v)?"–":Number(v).toLocaleString("en-IN",{minimumFractionDigits:d,maximumFractionDigits:d});
+const sg=v=>v==null?"–":(v>0?"+":"")+fmt(v)+"%";
 async function j(u){const r=await fetch(u+"?"+Date.now());if(!r.ok)throw 0;return r.json()}
-async function init(){try{const days=await j("data/index.json");$("d").innerHTML=days.slice().reverse().map(x=>`<option>${x}</option>`).join("");$("d").onchange=load;await load()}catch(e){$("u").textContent="No data yet"}}
-async function load(){doc=await j("data/"+$("d").value+".json");if(!sel.size)doc.symbols.forEach(s=>sel.add(s));draw()}
-function draw(){const S=doc.snaps,last=S[S.length-1],prev=S[S.length-2];$("u").textContent="Updated "+doc.updated+" IST";
-let ng=0,nl=0;$("tb").innerHTML=doc.symbols.map(s=>{const x=last.g[s]?["g",last.g[s]]:last.l[s]?["l",last.l[s]]:null;
-if(x)x[0]=="g"?ng++:nl++;let d="–";if(x&&prev&&prev[x[0]][s]){const v=prev[x[0]][s].r-x[1].r;d=v>0?`<span class=g>▲${v}</span>`:v<0?`<span class=l>▼${-v}</span>`:"•"}
-return x?`<tr><td>${s}</td><td><span class="b b${x[0]}">${x[0]=="g"?"GAINER":"LOSER"}</span></td><td>#${x[1].r}${x[1].r<=doc.top_n?"":" "}</td><td>${d}</td><td>${x[1].ltp??"-"}</td><td class="${x[1].p>=0?"g":"l"}">${x[1].p??"-"}%</td></tr>`:`<tr><td>${s}</td><td colspan=5 class=mut>not in list</td></tr>`}).join("");
-$("k0").textContent=doc.symbols.length;$("k1").textContent=ng;$("k2").textContent=nl;
-$("chips").innerHTML=doc.symbols.map(s=>`<button class="${sel.has(s)?"on":""}" onclick="tog('${s}')">${s}</button>`).join("");
-const ds=doc.symbols.filter(s=>sel.has(s)).map(s=>({label:s,data:S.map(n=>n[side][s]?n[side][s].r:null),borderColor:COL[doc.symbols.indexOf(s)%10],backgroundColor:COL[doc.symbols.indexOf(s)%10],tension:.25,pointRadius:3,borderWidth:2,spanGaps:false}));
-const mx=Math.max(doc.top_n,...ds.flatMap(d=>d.data.filter(v=>v)));
-if(chart)chart.destroy();chart=new Chart($("cv"),{type:"line",data:{labels:S.map(n=>n.t),datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"nearest",intersect:false},
-scales:{y:{reverse:true,min:1,max:mx,ticks:{stepSize:1,color:"#7d8ea3"},grid:{color:"#1e2a38"},title:{display:true,text:"Rank",color:"#7d8ea3"}},x:{ticks:{color:"#7d8ea3",maxTicksLimit:8},grid:{color:"#1e2a38"}}},plugins:{legend:{labels:{color:"#d7e2ee",boxWidth:10}}}}})}
-function tog(s){sel.has(s)?sel.delete(s):sel.add(s);draw()}
-$("tg").onclick=()=>{side="g";$("tg").className="on";$("tl").className="";draw()};$("tl").onclick=()=>{side="l";$("tl").className="on";$("tg").className="";draw()};
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setTheme(t){document.documentElement.dataset.theme=t;try{localStorage.setItem("th",t)}catch(e){}}
+try{const t=localStorage.getItem("th");if(t)setTheme(t)}catch(e){}
+$("th").onclick=()=>{setTheme(document.documentElement.dataset.theme=="dark"?"light":"dark");doc&&safeChart()};
+
+async function init(){try{const days=await j("data/index.json");$("d").innerHTML=days.slice().reverse().map(x=>`<option>${x}</option>`).join("");$("d").onchange=()=>{off.clear();load()};await load()}catch(e){$("stt").textContent="NO DATA"}}
+async function load(){doc=await j("data/"+$("d").value+".json");render()}
+
+function istNow(){const p=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date()).reduce((a,x)=>(a[x.type]=x.value,a),{});return{d:`${p.year}-${p.month}-${p.day}`,m:(+p.hour%24)*60+ +p.minute}}
+
+function build(){const S=doc.snaps,last=S[S.length-1]||{},prev=S[S.length-2]||{},m=last.m||{},cat=doc.cat||{},res=doc.res||{};
+return doc.symbols.map(s=>{const x=m[s]||{},gr=x.gr??null,lr=x.lr??null,sd=gr!=null?"g":lr!=null?"l":null,rk=sd=="g"?gr:sd=="l"?lr:null,pr=sd&&prev[sd]&&prev[sd][s]?prev[sd][s].r:null;
+return{s,ltp:x.ltp??null,p:x.p??null,sd,rk,d:pr!=null?pr-rk:null,cat:cat[s]||[],rd:res[s]}})}
+const P=r=>r.p??0;
+const byG=a=>a.filter(r=>r.sd=="g").sort((a,b)=>P(b)-P(a)),byL=a=>a.filter(r=>r.sd=="l").sort((a,b)=>P(a)-P(b)),byN=a=>a.filter(r=>!r.sd).sort((a,b)=>P(b)-P(a));
+
+function render(){const S=doc.snaps,last=S[S.length-1]||{};R=build();const G=byG(R),L=byL(R),N=byN(R);
+// breadth
+const a=last.adv,dn=last.dec,u=last.unch,t=(a||0)+(dn||0)+(u||0);
+$("adv").textContent=a??"–";$("dec").textContent=dn??"–";$("unc").textContent=u??"–";
+const pc=v=>t&&v!=null?(v/t*100).toFixed(1)+"%":"";$("advp").textContent=pc(a);$("decp").textContent=pc(dn);$("uncp").textContent=pc(u);
+$("ba").style.width=t?a/t*100+"%":0;$("bu").style.width=t?u/t*100+"%":0;$("bd").style.width=t?dn/t*100+"%":0;
+$("ad").textContent="A/D Ratio "+(dn?(a/dn).toFixed(2):"–");
+// cards
+const avg=R.filter(r=>r.p!=null);$("n-all").textContent=R.length;$("n-g").textContent=G.length;$("n-l").textContent=L.length;
+$("x-all").textContent=avg.length?"Avg "+sg(avg.reduce((s,r)=>s+r.p,0)/avg.length):"";
+$("x-g").textContent=G[0]?`Top ${G[0].s} ${sg(G[0].p)}`:"–";$("x-l").textContent=L[0]?`Top ${L[0].s} ${sg(L[0].p)}`:"–";
+// status
+const n=istNow(),up=(doc.updated||"00:00:00").split(":"),df=n.m-(+up[0]*60+ +up[1]),live=doc.date==n.d&&df>=0&&df<=12;
+$("st").className="pill"+(live?" live":"");$("stt").textContent=live?"LIVE · "+doc.updated.slice(0,5)+" IST":(doc.date==n.d?"LAST · ":"EOD · ")+(doc.updated||"").slice(0,5)+" IST";
+$("ft").textContent=`Data: NSE · ${doc.date} · ${S.length} snapshots · auto-refresh 60s`+(doc.cat?"":" · catalyst data nahi mila (52w_ath_scan.csv / resultcalender.csv)");
+table();record();safeChart()}
+
+function table(){const G=byG(R),L=byL(R),N=byN(R),q=$("q").value.trim().toUpperCase(),co=$("co").checked;
+let rows=view=="g"?G:view=="l"?L:[...G,...L,...N];
+rows=rows.filter(r=>(!q||r.s.includes(q))&&(!co||r.cat.length));
+$("tt").firstChild.textContent=view=="g"?"Gainers · sorted by % change":view=="l"?"Losers · biggest fall first":"Tracked Symbols";$("tc").textContent=rows.length+" symbols";
+["all","g","l"].forEach(v=>$("s-"+v).classList.toggle("on",v==view));
+$("tb").innerHTML=rows.length?rows.map(r=>{const c=r.sd=="g"?"g":r.sd=="l"?"l":"",bc=r.sd=="g"?["BULLISH","bg"]:r.sd=="l"?["BEARISH","bl"]:["NEUTRAL","bn"];
+const dl=r.d?`<span class="dl ${r.d>0?"g":"l"}">${r.d>0?"▲"+r.d:"▼"+-r.d}</span>`:"";
+const ct=r.cat.map(t=>`<span class="ct ${CC[t]}"${t=="RESULT"&&r.rd?` title="Result date: ${r.rd}"`:""}>${t}</span>`).join("")||'<span class="mut">–</span>';
+return`<tr class="${c?"b"+c:""}"><td>${r.s}</td><td>${fmt(r.ltp)}</td><td class="chg ${r.p==null?"":r.p>=0?"g":"l"}">${r.p==null?"–":(r.p>=0?"▲ ":"▼ ")+sg(r.p).replace("-","")}</td><td style="text-align:center"><span class="bd ${bc[1]}">${bc[0]}</span></td><td style="text-align:center" class="rk ${c}">${r.sd?(r.sd=="g"?"G":"L")+" #"+r.rk+dl:'<span class="mut">–</span>'}</td><td>${ct}</td></tr>`}).join(""):`<tr><td colspan="6" class="empty" style="text-align:center;position:static">Koi symbol nahi mila</td></tr>`}
+
+function record(){const rows=R.filter(r=>r.cat.length);$("rc").textContent=rows.length+" symbols";
+$("rb").innerHTML=rows.length?rows.map(r=>`<tr><td>${r.s}</td><td>${r.cat.map(t=>`<span class="ct ${CC[t]}">${t}</span>`).join("")}</td></tr>`).join(""):`<tr><td colspan="2" class="empty" style="text-align:center">Aaj koi catalyst wala symbol nahi</td></tr>`}
+$("dl").onclick=()=>{const rows=R.filter(r=>r.cat.length),csv="date,symbol,catalyst\n"+rows.map(r=>`${doc.date},${r.s},${r.cat.join(" | ")}`).join("\n"),a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`catalyst_${doc.date}.csv`;a.click()};
+
+function safeChart(){try{chartDraw()}catch(e){$("ce").style.display="block";$("ce").textContent="Chart load nahi hua (Chart.js CDN / internet check karo)"}}
+function appeared(){const o={};doc.snaps.forEach(n=>Object.entries(n[side]||{}).forEach(([s,v])=>{(o[s]=o[s]||[]).push(v.r)}));return Object.keys(o).sort((a,b)=>Math.min(...o[a])-Math.min(...o[b]))}
+function chartDraw(){const S=doc.snaps,ap=appeared(),dark=document.documentElement.dataset.theme=="dark",col=s=>`hsl(${(ap.indexOf(s)*47)%360},${dark?72:65}%,${dark?62:42}%)`;
+$("cs").textContent=ap.length+" symbols aaye";
+$("chips").innerHTML=ap.map(s=>`<button class="${off.has(s)?"":"on"}" onclick="tog('${s}')"><i style="background:${col(s)}"></i>${s}</button>`).join("");
+const ds=ap.filter(s=>!off.has(s)).map(s=>({label:s,data:S.map(n=>n[side]&&n[side][s]?n[side][s].r:null),borderColor:col(s),backgroundColor:col(s),tension:.25,pointRadius:3,pointHoverRadius:5,borderWidth:2,spanGaps:false}));
+if(chart){chart.destroy();chart=null}$("ce").style.display=ap.length?"none":"block";$("ce").textContent="Is side me abhi tak koi tracked symbol nahi aaya";
+if(ap.length){const mx=Math.max(doc.top_n||20,...ds.flatMap(d=>d.data.filter(v=>v)));const mut=css("--mut"),ln=css("--ln");
+chart=new Chart($("cv"),{type:"line",data:{labels:S.map(n=>n.t),datasets:ds},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+scales:{y:{reverse:true,min:1,max:mx,ticks:{stepSize:1,color:mut},grid:{color:ln},title:{display:true,text:"Rank",color:mut}},x:{ticks:{color:mut,maxTicksLimit:10},grid:{color:ln}}},
+plugins:{legend:{display:false},tooltip:{filter:i=>i.raw!=null,itemSort:(a,b)=>a.raw-b.raw,callbacks:{label:c=>` #${c.raw}  ${c.dataset.label}`}}}}})}
+$("log").innerHTML=S.slice().reverse().map(n=>{const f=o=>Object.entries(o||{}).sort((a,b)=>a[1].r-b[1].r).map(([s,v])=>`<span class="mini ${o==n.g?"g":"l"}">${s} #${v.r}</span>`).join("")||'<span class="mut">–</span>';return`<tr><td class="mut">${n.t}</td><td><b class="g">G</b> ${f(n.g)}<br><b class="l">L</b> ${f(n.l)}</td></tr>`}).join("")}
+function tog(s){off.has(s)?off.delete(s):off.add(s);safeChart()}
+$("ca").onclick=()=>{off.clear();safeChart()};$("cn").onclick=()=>{appeared().forEach(s=>off.add(s));safeChart()};
+$("tg").onclick=()=>{side="g";$("tg").className="on";$("tl").className="";off.clear();safeChart()};$("tl").onclick=()=>{side="l";$("tl").className="on";$("tg").className="";off.clear();safeChart()};
+document.querySelectorAll(".sg").forEach(b=>b.onclick=()=>{view=b.dataset.v;table()});
+$("q").oninput=table;$("co").onchange=table;
 init();setInterval(()=>doc&&load(),60000);
 </script></body></html>

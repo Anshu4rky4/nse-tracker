@@ -63,11 +63,8 @@ def parse_market(js, mine):
         sym = str(x.get("symbol", "")).strip().upper()
         if sym in mine:
             m[sym] = {
-                "ltp": x.get("lastPrice"), "p": x.get("pChange"), "chg": x.get("change"),
-                "o": x.get("open"), "h": x.get("dayHigh"), "lo": x.get("dayLow"),
-                "pc": x.get("previousClose"), "vol": x.get("totalTradedVolume"),
-                "yh": x.get("yearHigh"), "yl": x.get("yearLow"),
-                "nwh": x.get("nearWKH"), "nwl": x.get("nearWKL"),
+                "ltp": x.get("lastPrice"),
+                "p":   x.get("pChange"),
                 "lut": x.get("lastUpdateTime"),
             }
     return m, {"adv": adu.get("advances"), "dec": adu.get("declines"), "unch": adu.get("unchange")}

@@ -1,5 +1,5 @@
 """NSE F&O gainers/losers rank tracker. Run every 5 min; stores rank history in docs/data/."""
-import csv, io, json, os, sys, time
+import csv, io, json, os, re, sys, time
 from datetime import datetime, timezone, timedelta
 import requests
 
@@ -7,6 +7,9 @@ IST = timezone(timedelta(hours=5, minutes=30))
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(ROOT, "docs", "data")
 TOP_N = 20
+CSV_52W, CSV_RESULT = "52w_ath_scan.csv", "resultcalender.csv"   # daily replace hone wali files (root / docs / docs/data me)
+NEAR_PCT = 3.0            # sirf fallback: section column samajh na aaye to % columns se near check
+RESULT_KEYWORD = "result" # PURPOSE me ye word ho to hi RESULT catalyst
 BASE = "https://www.nseindia.com"
 URLS = {  # purani API: sirf gainers/losers rank ke liye
     "g": BASE + "/api/live-analysis-variations?index=gainers&type=FOSec&csv=true",
@@ -39,6 +42,55 @@ def fetch(s, url, as_json=False):
         time.sleep(3)
         s.get(BASE, headers=HDR, timeout=25)  # refresh cookies
     raise RuntimeError("NSE fetch failed: " + url)
+
+def find_file(name):
+    for d in (ROOT, os.path.join(ROOT, "docs"), DATA):
+        p = os.path.join(d, name)
+        if os.path.exists(p): return p
+
+def read_csv(path):  # BOM + "SYMBOL \n" jaise messy headers saaf karta hai
+    with open(path, encoding="utf-8-sig", newline="") as f:
+        rows = list(csv.reader(f))
+    if not rows: return []
+    head = [re.sub(r"\s+", "", h).lower() for h in rows[0]]
+    return [dict(zip(head, [c.strip() for c in r])) for r in rows[1:] if any(c.strip() for c in r)]
+
+def tags_52w(r):
+    sec = r.get("section", "").lower()
+    ath = re.search(r"(^|[^a-z])ath([^a-z]|$)|all[\s_-]*time", sec)
+    sec = re.sub(r"all[\s_-]*time[\s_-]*(high|low)?", " ", sec)
+    t = (["ATH"] if ath else []) + (["52W HIGH"] if "high" in sec else []) + (["52W LOW"] if "low" in sec else [])
+    if not t:  # fallback: % columns
+        for col, tag in (("pct_below_52w_high", "52W HIGH"), ("pct_above_52w_low", "52W LOW"), ("pct_below_ath", "ATH")):
+            v = num(r.get(col))
+            if v is not None and abs(v) <= NEAR_PCT: t.append(tag)
+    return t
+
+def load_catalysts(mine, today):
+    """52W High/Low, ATH, Result -> ({sym: [tags]}, {sym: result_date}). Files na mile to None."""
+    cat, res = {}, {}
+    p52, pres = find_file(CSV_52W), find_file(CSV_RESULT)
+    if not (p52 or pres): return None
+    if p52:
+        for r in read_csv(p52):
+            sym = r.get("symbol", "").upper()
+            if sym in mine:
+                for t in tags_52w(r):
+                    if t not in cat.setdefault(sym, []): cat[sym].append(t)
+    if pres:
+        back = 3 if today.weekday() == 0 else 1   # Monday: Fri+Sat+Sun+Mon, baaki din: kal+aaj
+        ok = {today - timedelta(days=i) for i in range(back + 1)}
+        for r in read_csv(pres):
+            sym = r.get("symbol", "").upper()
+            if sym not in mine or RESULT_KEYWORD not in r.get("purpose", "").lower(): continue
+            try: d = datetime.strptime(r.get("date", ""), "%d-%b-%Y").date()
+            except ValueError: continue
+            if d in ok and d >= res.get(sym, d): res[sym] = d
+        for sym, d in res.items():
+            cat.setdefault(sym, []).append("RESULT")
+        res = {k: v.strftime("%d-%b-%Y") for k, v in res.items()}
+    order = ["52W HIGH", "52W LOW", "ATH", "RESULT"]
+    return {k: sorted(v, key=order.index) for k, v in cat.items()}, res
 
 def parse(text):  # purana gainers/losers CSV parser (as it is)
     rows = list(csv.reader(io.StringIO(text.lstrip("\ufeff"))))
@@ -100,10 +152,12 @@ def main():
     doc = json.load(open(path)) if os.path.exists(path) else {"date": day, "snaps": []}
     doc.update(top_n=TOP_N, symbols=mine, updated=now.strftime("%H:%M:%S"))
     doc["snaps"] = [x for x in doc["snaps"] if x["t"] != snap["t"]] + [snap]
+    cr = load_catalysts(mine, now.date())   # catalyst us din ke JSON me freeze (backtest ke liye)
+    if cr: doc["cat"], doc["res"] = cr
     json.dump(doc, open(path, "w"), separators=(",", ":"))
     days = sorted(f[:-5] for f in os.listdir(DATA) if f[:2] == "20")
     json.dump(days, open(os.path.join(DATA, "index.json"), "w"))
-    print("saved", day, snap["t"], "ADU:", adu, "| mere symbols:", len(m))
+    print("saved", day, snap["t"], "ADU:", adu, "| mere symbols:", len(m), "| catalyst:", len(doc.get("cat", {})))
 
 if __name__ == "__main__":
     try: main()

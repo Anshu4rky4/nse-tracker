@@ -44,7 +44,7 @@ def fetch(s, url, as_json=False):
     raise RuntimeError("NSE fetch failed: " + url)
 
 def find_file(name):
-    for d in (ROOT, os.path.join(ROOT, "docs"), DATA):
+    for d in (os.path.join(ROOT, "output"), ROOT, os.path.join(ROOT, "docs"), DATA):
         p = os.path.join(d, name)
         if os.path.exists(p): return p
 

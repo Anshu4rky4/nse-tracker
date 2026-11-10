@@ -5,7 +5,7 @@ import pandas as pd
 from tvDatafeed import TvDatafeed, Interval
 
 # apni puraani poori list yahin paste karo
-stock_symbols = ["360ONE","ABB","APLAPOLLO"]  # ... baaki symbols
+stock_symbols = ["DLF","PIIND","MARICO"]  # ... baaki symbols
 
 EXCHANGE    = 'NSE'
 MAX_WORKERS = 3

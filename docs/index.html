@@ -41,6 +41,13 @@ th,td{padding:10px 14px;border-bottom:1px solid var(--ln);text-align:right}th:fi
 th{position:sticky;top:0;background:var(--p2);color:var(--mut);font-size:11px;font-weight:600;letter-spacing:.7px;text-transform:uppercase;z-index:2}
 tbody tr:hover td{background:var(--p2)}td:first-child{position:sticky;left:0;background:var(--p);font-weight:700;z-index:1}th:first-child{left:0;z-index:3}tbody tr:hover td:first-child{background:var(--p2)}
 tr.bg td:first-child{box-shadow:inset 3px 0 0 var(--g)}tr.bl td:first-child{box-shadow:inset 3px 0 0 var(--r)}
+/* star (focus mark) */
+.star{display:inline-flex;vertical-align:-3px;margin-right:8px;padding:0;border:0;background:none;border-radius:4px;color:var(--mut);opacity:.4;cursor:pointer;transition:.15s}
+.star svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.star:hover{opacity:.9;color:var(--am)}
+.star.on{color:var(--am);opacity:1;filter:drop-shadow(0 0 5px color-mix(in srgb,var(--am) 60%,transparent))}
+.star.on svg{fill:currentColor}
+tr.sr td{background:color-mix(in srgb,var(--am) 8%,var(--p))}
 .g{color:var(--g)}.l{color:var(--r)}.mut{color:var(--mut)}
 .chg{font-weight:600}.bd{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.7px;padding:3px 8px;border-radius:5px}
 .bd.bg{background:color-mix(in srgb,var(--g) 15%,transparent);color:var(--g)}.bd.bl{background:color-mix(in srgb,var(--r) 15%,transparent);color:var(--r)}.bd.bn{background:var(--p2);color:var(--mut);border:1px solid var(--ln)}
@@ -101,6 +108,7 @@ th,td{padding:9px 10px;font-size:13px}.brand small{display:none}.sg small{font-s
 </main>
 
 <script>
+const STAR_KEY="stars_v1";   // localStorage key: {d: IST date, s: [symbols]} -> next day auto-clear
 const $=id=>document.getElementById(id),CC={"52W HIGH":"c-hi","52W LOW":"c-lo","ATH":"c-ath","RESULT":"c-res"};
 let doc,view="all",side="g",off=new Set(),chart,R=[];
 const fmt=(v,d=2)=>v==null||isNaN(v)?"–":Number(v).toLocaleString("en-IN",{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -110,6 +118,10 @@ const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim
 function setTheme(t){document.documentElement.dataset.theme=t;try{localStorage.setItem("th",t)}catch(e){}}
 try{const t=localStorage.getItem("th");if(t)setTheme(t)}catch(e){}
 $("th").onclick=()=>{setTheme(document.documentElement.dataset.theme=="dark"?"light":"dark");doc&&safeChart()};
+
+// ---- Star marks: sirf aaj (IST) ke liye, refresh par bhi rehte hain, agle din auto-clear ----
+function stars(){try{const o=JSON.parse(localStorage.getItem(STAR_KEY)||"{}");return o.d==istNow().d?new Set(o.s||[]):new Set()}catch(e){return new Set()}}
+function saveStars(S){try{localStorage.setItem(STAR_KEY,JSON.stringify({d:istNow().d,s:[...S]}))}catch(e){}}
 
 async function init(){try{const days=await j("data/index.json");$("d").innerHTML=days.slice().reverse().map(x=>`<option>${x}</option>`).join("");$("d").onchange=()=>{off.clear();load()};await load()}catch(e){$("stt").textContent="NO DATA"}}
 async function load(){doc=await j("data/"+$("d").value+".json");render()}
@@ -139,15 +151,17 @@ $("st").className="pill"+(live?" live":"");$("stt").textContent=live?"LIVE · "+
 $("ft").textContent=`Data: NSE · ${doc.date} · ${S.length} snapshots · auto-refresh 60s`+(doc.cat?"":" · catalyst data nahi mila (52w_ath_scan.csv / resultcalender.csv)");
 table();record();safeChart()}
 
-function table(){const G=byG(R),L=byL(R),N=byN(R),q=$("q").value.trim().toUpperCase(),co=$("co").checked;
+function table(){const G=byG(R),L=byL(R),N=byN(R),q=$("q").value.trim().toUpperCase(),co=$("co").checked,SS=stars();
 let rows=view=="g"?G:view=="l"?L:[...G,...L,...N];
 rows=rows.filter(r=>(!q||r.s.includes(q))&&(!co||r.cat.length));
 $("tt").firstChild.textContent=view=="g"?"Gainers (TOP "+TN()+") · sorted by % change":view=="l"?"Losers (TOP "+TN()+") · biggest fall first":"Tracked Symbols";$("tc").textContent=rows.length+" symbols";
 ["all","g","l"].forEach(v=>$("s-"+v).classList.toggle("on",v==view));
-$("tb").innerHTML=rows.length?rows.map(r=>{const c=r.sd=="g"?"g":r.sd=="l"?"l":"",bc=r.sd=="g"?["BULLISH","bg"]:r.sd=="l"?["BEARISH","bl"]:r.p>0?["POSITIVE","bg"]:r.p<0?["NEGATIVE","bl"]:["NEUTRAL","bn"];
+$("tb").innerHTML=rows.length?rows.map(r=>{const c=r.sd=="g"?"g":r.sd=="l"?"l":"",bc=r.sd=="g"?["BULLISH","bg"]:r.sd=="l"?["BEARISH","bl"]:r.p>0?["POSITIVE","bg"]:r.p<0?["NEGATIVE","bl"]:["NEUTRAL","bn"],on=SS.has(r.s);
 const dl=r.d?`<span class="dl ${r.d>0?"g":"l"}">${r.d>0?"▲"+r.d:"▼"+-r.d}</span>`:"";
 const ct=r.cat.map(t=>`<span class="ct ${CC[t]}"${t=="RESULT"&&r.rd?` title="Result date: ${r.rd}"`:""}>${t}</span>`).join("")||'<span class="mut">–</span>';
-return`<tr class="${c?"b"+c:""}"><td>${r.s}</td><td>${fmt(r.ltp)}</td><td class="chg ${r.p==null?"":r.p>=0?"g":"l"}">${r.p==null?"–":(r.p>=0?"▲ ":"▼ ")+sg(r.p).replace("-","")}</td><td style="text-align:center"><span class="bd ${bc[1]}">${bc[0]}</span></td><td style="text-align:center" class="rk ${c}">${r.sd?(r.sd=="g"?"G":"L")+" #"+r.rk+dl:'<span class="mut">–</span>'}</td><td>${ct}</td></tr>`}).join(""):`<tr><td colspan="6" class="empty" style="text-align:center;position:static">Koi symbol nahi mila</td></tr>`}
+const star=`<button class="star${on?" on":""}" data-s="${r.s}" aria-pressed="${on}" aria-label="Star ${r.s}" title="${on?"Unstar":"Star"} ${r.s}"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg></button>`;
+return`<tr class="${[c?"b"+c:"",on?"sr":""].join(" ").trim()}"><td>${star}${r.s}</td><td>${fmt(r.ltp)}</td><td class="chg ${r.p==null?"":r.p>=0?"g":"l"}">${r.p==null?"–":(r.p>=0?"▲ ":"▼ ")+sg(r.p).replace("-","")}</td><td style="text-align:center"><span class="bd ${bc[1]}">${bc[0]}</span></td><td style="text-align:center" class="rk ${c}">${r.sd?(r.sd=="g"?"G":"L")+" #"+r.rk+dl:'<span class="mut">–</span>'}</td><td>${ct}</td></tr>`}).join(""):`<tr><td colspan="6" class="empty" style="text-align:center;position:static">Koi symbol nahi mila</td></tr>`}
+$("tb").onclick=e=>{const b=e.target.closest(".star");if(!b)return;const S=stars(),s=b.dataset.s;S.has(s)?S.delete(s):S.add(s);saveStars(S);table()};
 
 function record(){const rows=R.filter(r=>r.cat.length);$("rc").textContent=rows.length+" symbols";
 $("rb").innerHTML=rows.length?rows.map(r=>`<tr><td>${r.s}</td><td>${r.cat.map(t=>`<span class="ct ${CC[t]}">${t}</span>`).join("")}</td></tr>`).join(""):`<tr><td colspan="2" class="empty" style="text-align:center">Aaj koi catalyst wala symbol nahi</td></tr>`}
@@ -171,4 +185,5 @@ $("tg").onclick=()=>{side="g";$("tg").className="on";$("tl").className="";off.cl
 document.querySelectorAll(".sg").forEach(b=>b.onclick=()=>{view=b.dataset.v;table()});
 $("q").oninput=table;$("co").onchange=table;
 init();setInterval(()=>doc&&load(),60000);
-</script></body></html>
+</script>
+</body></html>

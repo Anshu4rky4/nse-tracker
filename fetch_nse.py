@@ -78,8 +78,8 @@ def load_catalysts(mine, today):
                 for t in tags_52w(r):
                     if t not in cat.setdefault(sym, []): cat[sym].append(t)
     if pres:
-        back = 3 if today.weekday() == 0 else 1   # Monday: Fri+Sat+Sun+Mon, baaki din: kal+aaj
-        ok = {today - timedelta(days=i) for i in range(back + 1)}
+                back = 3 if today.weekday() == 0 else 1   # Monday: Fri+Sat+Sun, baaki din: sirf kal (aaj ka result nahi)
+        ok = {today - timedelta(days=i) for i in range(1, back + 1)}
         for r in read_csv(pres):
             sym = r.get("symbol", "").upper()
             if sym not in mine or RESULT_KEYWORD not in r.get("purpose", "").lower(): continue

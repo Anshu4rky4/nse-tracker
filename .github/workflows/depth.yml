@@ -22,7 +22,7 @@ jobs:
       - name: Get depth CSVs from private repo
         uses: actions/checkout@v4
         with:
-          repository: SectorGainer_kotak
+          repository: anshu4rky4/SectorGainer_kotak
           token: ${{ secrets.OTHER_REPO_PAT }}
           path: depthsrc
           sparse-checkout: depth_data

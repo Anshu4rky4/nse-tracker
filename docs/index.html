@@ -64,12 +64,14 @@ input[type=search]{width:150px}
 .cb{padding:12px 16px}.tabs{display:inline-flex;border:1px solid var(--ln);border-radius:8px;overflow:hidden}.tabs button{border:0;border-radius:0;background:var(--p)}.tabs button.on{background:var(--a);color:#fff}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.chips button{font-size:11.5px;padding:3px 9px;border-radius:99px;opacity:.4;display:inline-flex;align-items:center;gap:5px}.chips button.on{opacity:1}.chips i{width:8px;height:8px;border-radius:50%}
 .ch{position:relative;height:clamp(320px,55vh,560px)}
+/* depth */
+.dg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.dg .tw{max-height:none;border:1px solid var(--ln);border-radius:10px}.dg .lbl{display:block;margin-bottom:6px}
 details{border-top:1px solid var(--ln)}summary{padding:12px 16px;cursor:pointer;font-weight:600;font-size:13px}
 .tl{max-height:360px;overflow:auto}.tl table td{white-space:normal;text-align:left;vertical-align:top}.tl td:first-child{width:64px}
 .mini{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;margin:2px 3px 2px 0;font-weight:600}.mini.g{background:color-mix(in srgb,var(--g) 14%,transparent)}.mini.l{background:color-mix(in srgb,var(--r) 14%,transparent)}
 footer{color:var(--mut);font-size:11.5px;text-align:center;padding:22px 0 30px}
 @media(max-width:640px){.w{padding:0 10px}.bc b{font-size:22px}.bc{padding-left:9px}.sg b{font-size:22px}.sg{padding:11px 12px}.seg{gap:8px}.brow{gap:4px}.breadth{padding:12px}
-th,td{padding:9px 10px;font-size:13px}.brand small{display:none}.sg small{font-size:10.5px}.lbl{font-size:10px}input[type=search]{width:120px}.ph{padding:10px 12px}.cb{padding:10px 12px}}
+th,td{padding:9px 10px;font-size:13px}.brand small{display:none}.sg small{font-size:10.5px}.lbl{font-size:10px}input[type=search]{width:120px}.ph{padding:10px 12px}.cb{padding:10px 12px}.dg{grid-template-columns:1fr}}
 </style></head><body>
 <div class="top"><div class="w">
 <div class="brand"><div class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20V8"/></svg></div><div><h1>NSE F&amp;O Rank Tracker</h1><small>Institutional Market Monitor</small></div></div>
@@ -101,6 +103,12 @@ th,td{padding:9px 10px;font-size:13px}.brand small{display:none}.sg small{font-s
 <div class="chips" id="chips"></div><div class="ch"><canvas id="cv"></canvas><div class="empty" id="ce" style="display:none;position:absolute;inset:0"></div></div></div>
 <details><summary>Snapshot Log · kis time par kaun gainer / loser me tha</summary><div class="tl"><table><tbody id="log"></tbody></table></div></details></section>
 
+<section class="card panel"><div class="ph"><h2>Market Depth vs Prev Day<span id="dc"></span></h2><div class="tabs"><button id="db" class="on">Buy (TOP 5)</button><button id="ds">Sell (TOP 5)</button></div></div>
+<div class="cb"><div class="dg">
+<div><span class="lbl" id="dlb">Top 5 Buy</span><div class="tw"><table><thead><tr><th>Symbol</th><th>% Chg</th><th>Latest Qty</th><th>Prev Last</th></tr></thead><tbody id="dtb-b"></tbody></table></div></div>
+<div><span class="lbl" id="dls">Top 5 Sell</span><div class="tw"><table><thead><tr><th>Symbol</th><th>% Chg</th><th>Latest Qty</th><th>Prev Last</th></tr></thead><tbody id="dtb-s"></tbody></table></div></div></div>
+<div class="ch" style="margin-top:14px"><canvas id="dcv"></canvas><div class="empty" id="de" style="display:none;position:absolute;inset:0"></div></div></div></section>
+
 <section class="card panel"><div class="ph"><h2>Catalyst Record<span id="rc"></span></h2><div class="ctl"><button id="dl">⬇ Download CSV</button></div></div>
 <div class="tw" style="max-height:50vh"><table><thead><tr><th>Symbol</th><th>Catalyst</th></tr></thead><tbody id="rb"></tbody></table></div></section>
 
@@ -109,22 +117,23 @@ th,td{padding:9px 10px;font-size:13px}.brand small{display:none}.sg small{font-s
 
 <script>
 const STAR_KEY="stars_v1";   // localStorage key: {d: IST date, s: [symbols]} -> next day auto-clear
+const DEPTH_TOP=5;           // market depth me kitne top buy / sell symbols dikhane hain
 const $=id=>document.getElementById(id),CC={"52W HIGH":"c-hi","52W LOW":"c-lo","ATH":"c-ath","RESULT":"c-res"};
-let doc,view="all",side="g",off=new Set(),chart,R=[];
+let doc,view="all",side="g",off=new Set(),chart,R=[],dd=null,dside="b",dchart;
 const fmt=(v,d=2)=>v==null||isNaN(v)?"–":Number(v).toLocaleString("en-IN",{minimumFractionDigits:d,maximumFractionDigits:d});
 const sg=v=>v==null?"–":(v>0?"+":"")+fmt(v)+"%";
 async function j(u){const r=await fetch(u+"?"+Date.now());if(!r.ok)throw 0;return r.json()}
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 function setTheme(t){document.documentElement.dataset.theme=t;try{localStorage.setItem("th",t)}catch(e){}}
 try{const t=localStorage.getItem("th");if(t)setTheme(t)}catch(e){}
-$("th").onclick=()=>{setTheme(document.documentElement.dataset.theme=="dark"?"light":"dark");doc&&safeChart()};
+$("th").onclick=()=>{setTheme(document.documentElement.dataset.theme=="dark"?"light":"dark");doc&&(safeChart(),safeDepth())};
 
 // ---- Star marks: sirf aaj (IST) ke liye, refresh par bhi rehte hain, agle din auto-clear ----
 function stars(){try{const o=JSON.parse(localStorage.getItem(STAR_KEY)||"{}");return o.d==istNow().d?new Set(o.s||[]):new Set()}catch(e){return new Set()}}
 function saveStars(S){try{localStorage.setItem(STAR_KEY,JSON.stringify({d:istNow().d,s:[...S]}))}catch(e){}}
 
 async function init(){try{const days=await j("data/index.json");$("d").innerHTML=days.slice().reverse().map(x=>`<option>${x}</option>`).join("");$("d").onchange=()=>{off.clear();load()};await load()}catch(e){$("stt").textContent="NO DATA"}}
-async function load(){doc=await j("data/"+$("d").value+".json");render()}
+async function load(){doc=await j("data/"+$("d").value+".json");render();loadDepth()}
 
 function istNow(){const p=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date()).reduce((a,x)=>(a[x.type]=x.value,a),{});return{d:`${p.year}-${p.month}-${p.day}`,m:(+p.hour%24)*60+ +p.minute}}
 
@@ -166,6 +175,26 @@ $("tb").onclick=e=>{const b=e.target.closest(".star");if(!b)return;const S=stars
 function record(){const rows=R.filter(r=>r.cat.length);$("rc").textContent=rows.length+" symbols";
 $("rb").innerHTML=rows.length?rows.map(r=>`<tr><td>${r.s}</td><td>${r.cat.map(t=>`<span class="ct ${CC[t]}">${t}</span>`).join("")}</td></tr>`).join(""):`<tr><td colspan="2" class="empty" style="text-align:center">Aaj koi catalyst wala symbol nahi</td></tr>`}
 $("dl").onclick=()=>{const rows=R.filter(r=>r.cat.length),csv="date,symbol,catalyst\n"+rows.map(r=>`${doc.date},${r.s},${r.cat.join(" | ")}`).join("\n"),a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`catalyst_${doc.date}.csv`;a.click()};
+
+// ---- Market Depth: aaj ke snapshots vs pichhle din ka last snapshot (% change) ----
+async function loadDepth(){try{dd=await j("data/depth/"+$("d").value+".json")}catch(e){dd=null}depthRender()}
+const dTop=k=>dd&&dd.sym?Object.entries(dd.sym).map(([s,v])=>({s,v,p:v[k].length?v[k][v[k].length-1]:null})).filter(x=>x.p!=null).sort((a,b)=>b.p-a.p).slice(0,DEPTH_TOP):[];
+function dRows(k,qk,bk,buy){const t=dTop(k);return t.length?t.map(x=>{const ok=buy?x.p>=0:x.p<0;return`<tr><td>${x.s}</td><td class="chg ${ok?"g":"l"}">${x.p>=0?"▲ ":"▼ "}${fmt(Math.abs(x.p))}%</td><td>${fmt(x.v[qk],0)}</td><td class="mut">${fmt(x.v[bk],0)}</td></tr>`}).join(""):`<tr><td colspan="4" class="empty" style="text-align:center;position:static">Depth data nahi mila</td></tr>`}
+function depthRender(){const n=dd&&dd.times?dd.times.length:0;
+$("dc").textContent=n?` · vs ${dd.base_date} ${dd.base_time} · latest ${dd.times[n-1]}`:"";
+$("db").textContent=`Buy (TOP ${DEPTH_TOP})`;$("ds").textContent=`Sell (TOP ${DEPTH_TOP})`;$("dlb").textContent=`Top ${DEPTH_TOP} Buy · % increase`;$("dls").textContent=`Top ${DEPTH_TOP} Sell · % increase`;
+$("dtb-b").innerHTML=dRows("bp","bq","b0",true);$("dtb-s").innerHTML=dRows("sp","sq","s0",false);safeDepth()}
+function safeDepth(){try{depthChart()}catch(e){$("de").style.display="block";$("de").textContent="Chart load nahi hua (Chart.js CDN / internet check karo)"}}
+function depthChart(){if(dchart){dchart.destroy();dchart=null}
+const k=dside+"p",top=dTop(k),dark=document.documentElement.dataset.theme=="dark";
+$("de").style.display=top.length?"none":"block";$("de").textContent="Depth data nahi mila (pichhle din ki CSV ya aaj ka data check karo)";
+if(!top.length)return;
+const col=i=>`hsl(${(i*67)%360},${dark?72:65}%,${dark?62:42}%)`,mut=css("--mut"),ln=css("--ln");
+dchart=new Chart($("dcv"),{type:"line",data:{labels:dd.times,datasets:top.map((x,i)=>({label:x.s,data:x.v[k],borderColor:col(i),backgroundColor:col(i),tension:.25,pointRadius:2,pointHoverRadius:4,borderWidth:2,spanGaps:true}))},
+options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+scales:{y:{ticks:{color:mut,callback:v=>v+"%"},grid:{color:ln},title:{display:true,text:"% vs prev day last",color:mut}},x:{ticks:{color:mut,maxTicksLimit:10},grid:{color:ln}}},
+plugins:{legend:{labels:{color:mut,boxWidth:10}},tooltip:{itemSort:(a,b)=>b.raw-a.raw,callbacks:{label:c=>` ${c.dataset.label}  ${c.raw==null?"–":(c.raw>0?"+":"")+c.raw+"%"}`}}}}})}
+$("db").onclick=()=>{dside="b";$("db").className="on";$("ds").className="";safeDepth()};$("ds").onclick=()=>{dside="s";$("ds").className="on";$("db").className="";safeDepth()};
 
 function safeChart(){try{chartDraw()}catch(e){$("ce").style.display="block";$("ce").textContent="Chart load nahi hua (Chart.js CDN / internet check karo)"}}
 function appeared(){const o={};doc.snaps.forEach(n=>Object.entries(n[side]||{}).forEach(([s,v])=>{(o[s]=o[s]||[]).push(v.r)}));return Object.keys(o).sort((a,b)=>Math.min(...o[a])-Math.min(...o[b]))}

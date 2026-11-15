@@ -18,7 +18,7 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
@@ -28,11 +28,29 @@ jobs:
 
       - run: pip install requests
 
+      # 1) NSE data fetch (pehle ye chalta hai)
       - name: Fetch NSE data
         run: python fetch_nse.py
         env:
           FORCE: ${{ github.event.inputs.force || '0' }}
 
+      # 2) Private repo se depth CSVs (fail ho to bhi upar ka NSE data save hoga)
+      - name: Get depth CSVs from private repo
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          repository: YOUR_USERNAME/SectorGainer_kotak
+          token: ${{ secrets.OTHER_REPO_PAT }}
+          path: depthsrc
+          sparse-checkout: depth_data
+          persist-credentials: false
+
+      # 3) Depth JSON banao
+      - name: Build depth JSON
+        continue-on-error: true
+        run: python build_depth.py
+
+      # 4) Dono ka data ek hi commit me
       - name: Commit data
         run: |
           git config user.name "tracker-bot"

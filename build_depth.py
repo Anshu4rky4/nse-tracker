@@ -43,9 +43,14 @@ def main():
     prevs = [d for d in days if d < target]
     if not prevs:
         print("pichhle din ki CSV nahi mili, baseline nahi bana"); return
-    base_day = max(prevs)
-    _, base_time, base_path = sorted(days[base_day])[-1]
-    base = load(base_path)
+    base = {}
+    for base_day in sorted(prevs, reverse=True):
+        _, base_time, base_path = sorted(days[base_day])[-1]
+        base = load(base_path)
+        if any(v[0] or v[1] for v in base.values()):   # holiday / khaali CSV skip
+            break
+    else:
+        print("valid baseline nahi mila"); return
     mine = set(symbols())
     sym = {s: {"bp": [], "sp": []} for s in mine if s in base}
     times, last = [], {}

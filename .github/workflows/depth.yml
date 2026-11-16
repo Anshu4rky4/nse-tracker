@@ -2,8 +2,6 @@ name: depth
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "*/5 3-10 * * 1-5"   # market hours (UTC). Agar external trigger use karte ho to ye 2 lines hata do
 
 concurrency:
   group: depth

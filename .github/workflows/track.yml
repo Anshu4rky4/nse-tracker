@@ -34,16 +34,29 @@ jobs:
         env:
           FORCE: ${{ github.event.inputs.force || '0' }}
 
+      # Debug (kaam hone ke baad ye step hata sakte ho)
+      - name: Debug PAT
+        continue-on-error: true
+        env:
+          PAT: ${{ secrets.OTHER_REPO_PAT }}
+        run: |
+          [ -z "$PAT" ] && echo "SECRET EMPTY/MISSING" || echo "secret length: ${#PAT}"
+          curl -s -o /dev/null -w "api status: %{http_code}\n" \
+            -H "Authorization: Bearer $PAT" \
+            https://api.github.com/repos/Anshu4rky4/SectorGainer_kotak
+
       # 2) Private repo se depth CSVs (fail ho to bhi upar ka NSE data save hoga)
       - name: Get depth CSVs from private repo
         continue-on-error: true
-        uses: actions/checkout@v4
-        with:
-          repository: anshu4rky4/SectorGainer_kotak
-          token: ${{ secrets.OTHER_REPO_PAT }}
-          path: depthsrc
-          sparse-checkout: depth_data
-          persist-credentials: false
+        env:
+          PAT: ${{ secrets.OTHER_REPO_PAT }}
+        run: |
+          rm -rf depthsrc
+          git clone --depth 1 --filter=blob:none --sparse \
+            https://x-access-token:${PAT}@github.com/Anshu4rky4/SectorGainer_kotak.git depthsrc
+          cd depthsrc
+          git sparse-checkout set depth_data
+          rm -rf .git
 
       # 3) Depth JSON banao
       - name: Build depth JSON

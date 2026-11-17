@@ -28,42 +28,13 @@ jobs:
 
       - run: pip install requests
 
-      # 1) NSE data fetch (pehle ye chalta hai)
+      # 1) NSE data fetch
       - name: Fetch NSE data
         run: python fetch_nse.py
         env:
           FORCE: ${{ github.event.inputs.force || '0' }}
 
-      # Debug (kaam hone ke baad ye step hata sakte ho)
-      - name: Debug PAT
-        continue-on-error: true
-        env:
-          PAT: ${{ secrets.OTHER_REPO_PAT }}
-        run: |
-          [ -z "$PAT" ] && echo "SECRET EMPTY/MISSING" || echo "secret length: ${#PAT}"
-          curl -s -o /dev/null -w "api status: %{http_code}\n" \
-            -H "Authorization: Bearer $PAT" \
-            https://api.github.com/repos/Anshu4rky4/SectorGainer_kotak
-
-      # 2) Private repo se depth CSVs (fail ho to bhi upar ka NSE data save hoga)
-      - name: Get depth CSVs from private repo
-        continue-on-error: true
-        env:
-          PAT: ${{ secrets.OTHER_REPO_PAT }}
-        run: |
-          rm -rf depthsrc
-          git clone --depth 1 --filter=blob:none --sparse \
-            https://x-access-token:${PAT}@github.com/Anshu4rky4/SectorGainer_kotak.git depthsrc
-          cd depthsrc
-          git sparse-checkout set depth_data
-          rm -rf .git
-
-      # 3) Depth JSON banao
-      - name: Build depth JSON
-        continue-on-error: true
-        run: python build_depth.py
-
-      # 4) Dono ka data ek hi commit me
+      # 2) Commit data
       - name: Commit data
         run: |
           git config user.name "tracker-bot"

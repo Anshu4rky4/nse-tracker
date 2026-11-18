@@ -109,6 +109,8 @@ th,td{padding:9px 10px;font-size:13px}.brand small{display:none}.sg small{font-s
 
 <section class="card panel"><div class="ph"><h2>Company News<span id="nc"></span></h2></div><div class="nw" id="nb"></div></section>
 
+<section class="card panel"><div class="ph"><h2>Corporate Announcements<span id="ac"></span></h2></div><div class="nw" id="ab"></div></section>
+
 <section class="card panel"><div class="ph"><h2>Catalyst Record<span id="rc"></span></h2><div class="ctl"><button id="dl">⬇ Download CSV</button></div></div>
 <div class="tw" style="max-height:50vh"><table><thead><tr><th>Symbol</th><th>Catalyst</th></tr></thead><tbody id="rb"></tbody></table></div></section>
 
@@ -118,7 +120,7 @@ th,td{padding:9px 10px;font-size:13px}.brand small{display:none}.sg small{font-s
 <script>
 const STAR_KEY="stars_v1";   // {d: IST date, s: [symbols]} -> agle din auto-clear
 const $=id=>document.getElementById(id),CC={"52W HIGH":"c-hi","52W LOW":"c-lo","ATH":"c-ath","RESULT":"c-res"};
-let nw=null,nwDay="",doc,view="all",side="g",off=new Set(),chart,R=[];
+let nw=null,nwDay="",an=null,anDay="",doc,view="all",side="g",off=new Set(),chart,R=[];
 const fmt=(v,d=2)=>v==null||isNaN(v)?"–":Number(v).toLocaleString("en-IN",{minimumFractionDigits:d,maximumFractionDigits:d});
 const sg=v=>v==null?"–":(v>0?"+":"")+fmt(v)+"%";
 async function j(u){const r=await fetch(u+"?"+Date.now());if(!r.ok)throw 0;return r.json()}
@@ -130,7 +132,7 @@ $("th").onclick=()=>{setTheme(document.documentElement.dataset.theme=="dark"?"li
 function stars(){try{const o=JSON.parse(localStorage.getItem(STAR_KEY)||"{}");return o.d==istNow().d?new Set(o.s||[]):new Set()}catch(e){return new Set()}}
 function saveStars(S){try{localStorage.setItem(STAR_KEY,JSON.stringify({d:istNow().d,s:[...S]}))}catch(e){}}
 async function init(){try{const days=await j("data/index.json");$("d").innerHTML=days.slice().reverse().map(x=>`<option>${x}</option>`).join("");$("d").onchange=()=>{off.clear();load()};await load()}catch(e){$("stt").textContent="NO DATA"}}
-async function load(){doc=await j("data/"+$("d").value+".json");render();if(nwDay!=doc.date){nwDay=doc.date;loadNews()}}
+async function load(){doc=await j("data/"+$("d").value+".json");render();if(nwDay!=doc.date){nwDay=doc.date;loadNews()}if(anDay!=doc.date){anDay=doc.date;loadAnn()}}
 
 function istNow(){const p=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date()).reduce((a,x)=>(a[x.type]=x.value,a),{});return{d:`${p.year}-${p.month}-${p.day}`,m:(+p.hour%24)*60+ +p.minute}}
 
@@ -155,7 +157,7 @@ $("x-g").textContent=G[0]?`Top ${G[0].s} ${sg(G[0].p)}`:"–";$("x-l").textConte
 const n=istNow(),up=(doc.updated||"00:00:00").split(":"),df=n.m-(+up[0]*60+ +up[1]),live=doc.date==n.d&&df>=0&&df<=12;
 $("st").className="pill"+(live?" live":"");$("stt").textContent=live?"LIVE · "+doc.updated.slice(0,5)+" IST":(doc.date==n.d?"LAST · ":"EOD · ")+(doc.updated||"").slice(0,5)+" IST";
 $("ft").textContent=`Data: NSE · ${doc.date} · ${S.length} snapshots · auto-refresh 60s`+(doc.cat?"":" · catalyst data nahi mila (52w_ath_scan.csv / resultcalender.csv)");
-table();record();newsRender();safeChart()}
+table();record();newsRender();annRender();safeChart()}
 
 function table(){const G=byG(R),L=byL(R),N=byN(R),q=$("q").value.trim().toUpperCase(),co=$("co").checked,SS=stars();
 let rows=view=="g"?G:view=="l"?L:[...G,...L,...N];
@@ -174,6 +176,10 @@ async function loadNews(){try{nw=await j("data/news/"+$("d").value+".json")}catc
 function newsRender(){const N=nw&&nw.news||{},q=$("q").value.trim().toUpperCase(),rows=[...byG(R),...byL(R),...byN(R)].filter(r=>N[r.s]&&(!q||r.s.includes(q)));
 $("nc").textContent=nw?` · ${rows.length} symbols · ${rows.reduce((a,r)=>a+N[r.s].length,0)} headlines`+(nw.updated?" · "+nw.updated.slice(0,5)+" IST":""):"";
 $("nb").innerHTML=rows.length?rows.map(r=>`<article class="nc"><header><b>${r.s}</b><span class="${r.p==null?"mut":r.p>=0?"g":"l"}">${sg(r.p)}</span></header>${N[r.s].map(x=>`<div class="ni"><span class="nt">${(x.p||"").slice(11,16)}</span><p>${esc(x.h)}${x.r?'<em class="ct c-res">RESULT</em>':""}<small>${esc(x.s)}</small></p></div>`).join("")}</article>`).join(""):`<div class="empty" style="grid-column:1/-1">${nw?"Is din koi important news nahi":"News data nahi mila"}</div>`}
+async function loadAnn(){try{an=await j("data/ann/"+$("d").value+".json")}catch(e){an=null}annRender()}
+function annRender(){const N=an&&an.ann||{},q=$("q").value.trim().toUpperCase(),rows=[...byG(R),...byL(R),...byN(R)].filter(r=>N[r.s]&&(!q||r.s.includes(q)));
+$("ac").textContent=an?` · ${rows.length} symbols · ${rows.reduce((a,r)=>a+N[r.s].length,0)} ultra-high`+(an.window&&an.window.length?" · "+an.window[0].slice(5)+(an.window.length>1?" → "+an.window[an.window.length-1].slice(5):""):""):"";
+$("ab").innerHTML=rows.length?rows.map(r=>`<article class="nc"><header><b>${r.s}</b><span class="${r.p==null?"mut":r.p>=0?"g":"l"}">${sg(r.p)}</span></header>${N[r.s].map(x=>`<div class="ni"><span class="nt">${x.t.slice(8,10)}/${x.t.slice(5,7)}<br>${x.t.slice(11,16)}</span><p>${esc(x.s)}<em class="ct c-ath">${esc(x.c)}</em><small>${esc(x.d)}</small></p></div>`).join("")}</article>`).join(""):`<div class="empty" style="grid-column:1/-1">${an?"Is window me koi ultra-high announcement nahi":"Announcement data nahi mila"}</div>`}
 function record(){const rows=R.filter(r=>r.cat.length);$("rc").textContent=rows.length+" symbols";
 $("rb").innerHTML=rows.length?rows.map(r=>`<tr><td>${r.s}</td><td>${r.cat.map(t=>`<span class="ct ${CC[t]}">${t}</span>`).join("")}</td></tr>`).join(""):`<tr><td colspan="2" class="empty" style="text-align:center">Aaj koi catalyst wala symbol nahi</td></tr>`}
 $("dl").onclick=()=>{const rows=R.filter(r=>r.cat.length),csv="date,symbol,catalyst\n"+rows.map(r=>`${doc.date},${r.s},${r.cat.join(" | ")}`).join("\n"),a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`catalyst_${doc.date}.csv`;a.click()};
@@ -194,6 +200,6 @@ function tog(s){off.has(s)?off.delete(s):off.add(s);safeChart()}
 $("ca").onclick=()=>{off.clear();safeChart()};$("cn").onclick=()=>{appeared().forEach(s=>off.add(s));safeChart()};
 $("tg").onclick=()=>{side="g";$("tg").className="on";$("tl").className="";off.clear();safeChart()};$("tl").onclick=()=>{side="l";$("tl").className="on";$("tg").className="";off.clear();safeChart()};
 document.querySelectorAll(".sg").forEach(b=>b.onclick=()=>{view=b.dataset.v;table()});
-$("q").oninput=()=>{table();newsRender()};$("co").onchange=table;
+$("q").oninput=()=>{table();newsRender();annRender()};$("co").onchange=table;
 init();setInterval(()=>doc&&load(),60000);
 </script></body></html>

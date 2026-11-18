@@ -35,8 +35,9 @@ For EACH one decide if it is ULTRA HIGH IMPACT for the stock price. ULTRA HIGH c
 NOT ultra high (ultra=false): routine compliance, newspaper publications, investor-call transcripts or schedules, trading window,
 certificates, AGM/board-meeting intimations, minor/small orders, ESOP allotments, any general update.
 Rules: Use ONLY the given text. Do not invent numbers. If unsure, ultra=false.
-For ultra=true give: category (one of the above, short word) and summary_hi = VERY SHORT Hindi (Devanagari) summary,
-max 25 words, keep key numbers (amount, % growth, ratio). For ultra=false: category "" and summary_hi "".
+For ultra=true give: category (one of the above, short word) and summary_hi = VERY SHORT Hinglish summary (Hindi language written in ENGLISH/Roman letters, NOT Devanagari script,
+like "Prestige Estates ne Prestige Vaishnoi Projects me 4.59% extra hissedari Rs 110.9 cr me kharidi"),
+max 25 words, keep key numbers (amount, % growth, ratio). Never use Devanagari characters. For ultra=false: category "" and summary_hi "".
 Return ONLY a JSON array: [{"id": 0, "ultra": true, "category": "RESULT", "summary_hi": "..."}]
 
 ANNOUNCEMENTS:
